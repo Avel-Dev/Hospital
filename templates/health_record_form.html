@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-10 mx-auto">
+    <h2 class="mb-4">{{ title }}</h2>
+    <form method="post" class="row g-3">
+      {% csrf_token %}
+      
+      <div class="col-md-12">
+        <h5 class="border-bottom pb-2 mb-3">Patient & Visit Information</h5>
+      </div>
+      
+      <div class="col-md-6">
+        <label class="form-label">{{ form.patient.label }} <span class="text-danger">*</span></label>
+        {{ form.patient }}
+        {% if form.patient.errors %}
+          <div class="text-danger small">{{ form.patient.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="col-md-6">
+        <label class="form-label">{{ form.record_date.label }} <span class="text-danger">*</span></label>
+        {{ form.record_date }}
+        {% if form.record_date.errors %}
+          <div class="text-danger small">{{ form.record_date.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="col-md-6">
+        <label class="form-label">{{ form.doctor.label }} <span class="text-danger">*</span></label>
+        {{ form.doctor }}
+        {% if form.doctor.errors %}
+          <div class="text-danger small">{{ form.doctor.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="col-md-6">
+        <label class="form-label">{{ form.department.label }} <span class="text-danger">*</span></label>
+        {{ form.department }}
+        {% if form.department.errors %}
+          <div class="text-danger small">{{ form.department.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="col-md-6">
+        <label class="form-label">{{ form.visit_type.label }}</label>
+        {{ form.visit_type }}
+        {% if form.visit_type.errors %}
+          <div class="text-danger small">{{ form.visit_type.errors }}</div>
+        {% endif %}
+        <small class="form-text text-muted">{{ form.visit_type.help_text }}</small>
+      </div>
+      
+      <div class="col-md-12">
+        <h5 class="border-bottom pb-2 mb-3 mt-4">Vital Signs</h5>
+      </div>
+      
+      <div class="col-md-4">
+        <label class="form-label">{{ form.systolic_bp.label }}</label>
+        {{ form.systolic_bp }}
+        {% if form.systolic_bp.errors %}
+          <div class="text-danger small">{{ form.systolic_bp.errors }}</div>
+        {% endif %}
+        <small class="form-text text-muted">{{ form.systolic_bp.help_text }}</small>
+      </div>
+      
+      <div class="col-md-4">
+        <label class="form-label">{{ form.diastolic_bp.label }}</label>
+        {{ form.diastolic_bp }}
+        {% if form.diastolic_bp.errors %}
+          <div class="text-danger small">{{ form.diastolic_bp.errors }}</div>
+        {% endif %}
+        <small class="form-text text-muted">{{ form.diastolic_bp.help_text }}</small>
+      </div>
+      
+      <div class="col-md-4">
+        <label class="form-label">{{ form.heart_rate.label }}</label>
+        {{ form.heart_rate }}
+        {% if form.heart_rate.errors %}
+          <div class="text-danger small">{{ form.heart_rate.errors }}</div>
+        {% endif %}
+        <small class="form-text text-muted">{{ form.heart_rate.help_text }}</small>
+      </div>
+      
+      <div class="col-md-4">
+        <label class="form-label">{{ form.temperature.label }}</label>
+        {{ form.temperature }}
+        {% if form.temperature.errors %}
+          <div class="text-danger small">{{ form.temperature.errors }}</div>
+        {% endif %}
+        <small class="form-text text-muted">{{ form.temperature.help_text }}</small>
+      </div>
+      
+      <div class="col-md-4">
+        <label class="form-label">{{ form.weight.label }}</label>
+        {{ form.weight }}
+        {% if form.weight.errors %}
+          <div class="text-danger small">{{ form.weight.errors }}</div>
+        {% endif %}
+        <small class="form-text text-muted">{{ form.weight.help_text }}</small>
+      </div>
+      
+      <div class="col-md-4">
+        <label class="form-label">{{ form.height.label }}</label>
+        {{ form.height }}
+        {% if form.height.errors %}
+          <div class="text-danger small">{{ form.height.errors }}</div>
+        {% endif %}
+        <small class="form-text text-muted">{{ form.height.help_text }}</small>
+        <small class="form-text text-muted d-block mt-1">BMI will be calculated automatically if weight and height are provided.</small>
+      </div>
+      
+      <div class="col-md-12">
+        <h5 class="border-bottom pb-2 mb-3 mt-4">Clinical Information</h5>
+      </div>
+      
+      <div class="col-md-12">
+        <label class="form-label">{{ form.symptoms.label }}</label>
+        {{ form.symptoms }}
+        {% if form.symptoms.errors %}
+          <div class="text-danger small">{{ form.symptoms.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="col-md-12">
+        <label class="form-label">{{ form.diagnosis.label }}</label>
+        {{ form.diagnosis }}
+        {% if form.diagnosis.errors %}
+          <div class="text-danger small">{{ form.diagnosis.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="col-md-12">
+        <label class="form-label">{{ form.medications.label }}</label>
+        {{ form.medications }}
+        {% if form.medications.errors %}
+          <div class="text-danger small">{{ form.medications.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="col-md-12">
+        <label class="form-label">{{ form.notes.label }}</label>
+        {{ form.notes }}
+        {% if form.notes.errors %}
+          <div class="text-danger small">{{ form.notes.errors }}</div>
+        {% endif %}
+      </div>
+      
+      <div class="col-12 mt-4">
+        <button type="submit" class="btn btn-primary">Save Health Record</button>
+        {% if form.patient.value %}
+          <a href="{% url 'patient_detail' form.patient.value %}" class="btn btn-secondary">Cancel</a>
+        {% else %}
+          <a href="{% url 'patient_list' %}" class="btn btn-secondary">Cancel</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% block title %}Patient: {{ patient.full_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>{{ patient.full_name }}</h2>
+  <div>
+    <a href="{% url 'patient_update' patient.pk %}" class="btn btn-warning">Edit Patient</a>
+    <a href="{% url 'patient_delete' patient.pk %}" class="btn btn-danger">Delete Patient</a>
+    <a href="{% url 'health_record_create_for_patient' patient.pk %}" class="btn btn-success">Add Health Record</a>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Patient Information</h5>
+      </div>
+      <div class="card-body">
+        <p><strong>Patient ID:</strong> {{ patient.patient_id }}</p>
+        <p><strong>Name:</strong> {{ patient.full_name }}</p>
+        <p><strong>Date of Birth:</strong> {{ patient.date_of_birth|date:"Y-m-d" }}</p>
+        <p><strong>Age:</strong> {{ patient.age }} years</p>
+        <p><strong>Gender:</strong> {{ patient.get_gender_display }}</p>
+        <p><strong>Blood Type:</strong> {{ patient.blood_type|default:"Not specified" }}</p>
+        <p><strong>Registration Date:</strong> {{ patient.registration_date|date:"Y-m-d H:i" }}</p>
+      </div>
+    </div>
+    
+    <div class="card mb-3">
+      <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Contact Information</h5>
+      </div>
+      <div class="card-body">
+        <p><strong>Email:</strong> {{ patient.email }}</p>
+        <p><strong>Phone:</strong> {{ patient.phone }}</p>
+        {% if patient.address %}
+          <p><strong>Address:</strong> {{ patient.address }}</p>
+        {% endif %}
+        {% if patient.emergency_contact_name %}
+          <p><strong>Emergency Contact:</strong> {{ patient.emergency_contact_name }} ({{ patient.emergency_contact_phone }})</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">Medical Information</h5>
+      </div>
+      <div class="card-body">
+        {% if patient.known_allergies %}
+          <p><strong>Known Allergies:</strong><br>{{ patient.known_allergies|linebreaks }}</p>
+        {% else %}
+          <p><strong>Known Allergies:</strong> None recorded</p>
+        {% endif %}
+        {% if patient.medical_history %}
+          <p><strong>Medical History:</strong><br>{{ patient.medical_history|linebreaks }}</p>
+        {% else %}
+          <p><strong>Medical History:</strong> None recorded</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Health Records</h5>
+        <a href="{% url 'health_record_create_for_patient' patient.pk %}" class="btn btn-light btn-sm">Add New Record</a>
+      </div>
+      <div class="card-body">
+        {% if health_records %}
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Doctor</th>
+                  <th>Department</th>
+                  <th>Diagnosis</th>
+                  <th>Visit Type</th>
+                  <th>Vital Signs</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for record in health_records %}
+                <tr>
+                  <td>{{ record.record_date|date:"Y-m-d H:i" }}</td>
+                  <td>{{ record.doctor.full_name }}</td>
+                  <td>{{ record.department.name }}</td>
+                  <td>{{ record.diagnosis|default:"—" }}</td>
+                  <td>{{ record.visit_type|default:"—" }}</td>
+                  <td>
+                    {% if record.systolic_bp and record.diastolic_bp %}
+                      BP: {{ record.systolic_bp }}/{{ record.diastolic_bp }}
+                    {% endif %}
+                    {% if record.heart_rate %}
+                      HR: {{ record.heart_rate }}
+                    {% endif %}
+                    {% if record.bmi %}
+                      BMI: {{ record.bmi|floatformat:1 }}
+                    {% endif %}
+                  </td>
+                  <td><a href="{% url 'health_record_detail' record.pk %}" class="btn btn-sm btn-info">View</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted">No health records yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">Recent Appointments</h5>
+      </div>
+      <div class="card-body">
+        {% if appointments %}
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Doctor</th>
+                  <th>Department</th>
+                  <th>Notes</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for appointment in appointments %}
+                <tr>
+                  <td>{{ appointment.appointment_date|date:"Y-m-d" }}</td>
+                  <td>{{ appointment.doctor.full_name }}</td>
+                  <td>{{ appointment.department.name }}</td>
+                  <td>{{ appointment.notes|truncatewords:10|default:"—" }}</td>
+                  <td>
+                    <a href="{% url 'appointment_delete' appointment.pk %}" class="btn btn-sm btn-danger">Delete</a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted">No appointments recorded.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Department: {{ department.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>{{ department.name }}</h2>
+  <a href="{% url 'departments' %}" class="btn btn-secondary">Back to Departments</a>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Department Information</h5>
+      </div>
+      <div class="card-body">
+        <p><strong>Description:</strong> {{ department.description|default:"No description available." }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Doctors ({{ doctors.count }})</h5>
+      </div>
+      <div class="card-body">
+        {% if doctors %}
+          <div class="list-group list-group-flush">
+            {% for doctor in doctors %}
+            <div class="list-group-item">
+              <div class="d-flex w-100 justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-1">{{ doctor.full_name }}</h6>
+                  {% if doctor.email %}
+                    <small class="text-muted">{{ doctor.email }}</small>
+                  {% endif %}
+                  {% if doctor.phone %}
+                    <small class="text-muted"> • {{ doctor.phone }}</small>
+                  {% endif %}
+                </div>
+                <a href="{% url 'doctor_delete' doctor.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">No doctors assigned to this department yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Patients ({{ patients.count }})</h5>
+      </div>
+      <div class="card-body">
+        {% if patients %}
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>Patient ID</th>
+                  <th>Name</th>
+                  <th>Age</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for patient in patients %}
+                <tr>
+                  <td>{{ patient.patient_id }}</td>
+                  <td>{{ patient.full_name }}</td>
+                  <td>{{ patient.age }}</td>
+                  <td>
+                    <a href="{% url 'patient_detail' patient.pk %}" class="btn btn-sm btn-info">View</a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">No patients have appointments or health records in this department yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">Recent Appointments</h5>
+      </div>
+      <div class="card-body">
+        {% if recent_appointments %}
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Patient</th>
+                  <th>Doctor</th>
+                  <th>Notes</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for appointment in recent_appointments %}
+                <tr>
+                  <td>{{ appointment.appointment_date|date:"Y-m-d" }}</td>
+                  <td>
+                    {% if appointment.patient %}
+                      <a href="{% url 'patient_detail' appointment.patient.pk %}">{{ appointment.patient_name }}</a>
+                    {% else %}
+                      {{ appointment.patient_name }}
+                    {% endif %}
+                  </td>
+                  <td>{{ appointment.doctor.full_name }}</td>
+                  <td>{{ appointment.notes|truncatewords:10|default:"—" }}</td>
+                  <td>
+                    <a href="{% url 'appointment_delete' appointment.pk %}" class="btn btn-sm btn-danger">Delete</a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">No recent appointments.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Health Record - {{ record.patient.full_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>Health Record</h2>
+  <a href="{% url 'patient_detail' record.patient.pk %}" class="btn btn-secondary">Back to Patient</a>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Visit Information</h5>
+      </div>
+      <div class="card-body">
+        <p><strong>Patient:</strong> {{ record.patient.full_name }} ({{ record.patient.patient_id }})</p>
+        <p><strong>Date & Time:</strong> {{ record.record_date|date:"Y-m-d H:i" }}</p>
+        <p><strong>Doctor:</strong> {{ record.doctor.full_name }}</p>
+        <p><strong>Department:</strong> {{ record.department.name }}</p>
+        {% if record.visit_type %}
+          <p><strong>Visit Type:</strong> {{ record.visit_type }}</p>
+        {% endif %}
+        <p><strong>Record Created:</strong> {{ record.created_at|date:"Y-m-d H:i" }}</p>
+      </div>
+    </div>
+    
+    <div class="card mb-3">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0">Vital Signs</h5>
+      </div>
+      <div class="card-body">
+        {% if record.systolic_bp and record.diastolic_bp %}
+          <p><strong>Blood Pressure:</strong> {{ record.systolic_bp }}/{{ record.diastolic_bp }} mmHg</p>
+        {% endif %}
+        {% if record.heart_rate %}
+          <p><strong>Heart Rate:</strong> {{ record.heart_rate }} bpm</p>
+        {% endif %}
+        {% if record.temperature %}
+          <p><strong>Temperature:</strong> {{ record.temperature }} °C</p>
+        {% endif %}
+        {% if record.weight %}
+          <p><strong>Weight:</strong> {{ record.weight }} kg</p>
+        {% endif %}
+        {% if record.height %}
+          <p><strong>Height:</strong> {{ record.height }} cm</p>
+        {% endif %}
+        {% if record.bmi %}
+          <p><strong>BMI:</strong> {{ record.bmi|floatformat:2 }}</p>
+        {% endif %}
+        {% if not record.systolic_bp and not record.heart_rate and not record.temperature %}
+          <p class="text-muted">No vital signs recorded.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">Clinical Information</h5>
+      </div>
+      <div class="card-body">
+        {% if record.symptoms %}
+          <p><strong>Symptoms:</strong><br>{{ record.symptoms|linebreaks }}</p>
+        {% else %}
+          <p><strong>Symptoms:</strong> None recorded</p>
+        {% endif %}
+        
+        {% if record.diagnosis %}
+          <p><strong>Diagnosis:</strong><br>{{ record.diagnosis }}</p>
+        {% else %}
+          <p><strong>Diagnosis:</strong> None recorded</p>
+        {% endif %}
+        
+        {% if record.medications %}
+          <p><strong>Medications:</strong><br>{{ record.medications|linebreaks }}</p>
+        {% else %}
+          <p><strong>Medications:</strong> None recorded</p>
+        {% endif %}
+        
+        {% if record.notes %}
+          <p><strong>Notes:</strong><br>{{ record.notes|linebreaks }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Departments{% endblock %}
+{% block content %}
+<h2 class="mb-3">Departments</h2>
+<div class="row row-cols-1 row-cols-md-2 g-3">
+  {% for d in departments %}
+  <div class="col">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            <h5 class="card-title">
+              <a href="{% url 'department_detail' d.pk %}" class="text-decoration-none">{{ d.name }}</a>
+            </h5>
+            <p class="card-text">{{ d.description|default:'No description available.' }}</p>
+            <small class="text-muted">
+              <a href="{% url 'department_detail' d.pk %}" class="text-decoration-none">View doctors and patients →</a>
+            </small>
+          </div>
+          <a href="{% url 'department_delete' d.pk %}" class="btn btn-sm btn-outline-danger ms-2" onclick="return confirm('Are you sure you want to delete this department?');">Delete</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <p>No departments yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}
+
+
+
+
