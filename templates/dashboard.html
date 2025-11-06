@@ -1,0 +1,432 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h2 class="mb-4">Hospital Dashboard</h2>
+
+<div class="alert alert-info mb-4">
+  <i class="bi bi-info-circle"></i> <strong>Tip:</strong> Click on any chart segment or bar to view the filtered list of patients!
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-md-2 col-sm-6 mb-3">
+    <div class="card text-white bg-primary">
+      <div class="card-body">
+        <h5 class="card-title">Total Patients</h5>
+        <h2 class="mb-0">{{ total_patients }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-6 mb-3">
+    <div class="card text-white bg-success">
+      <div class="card-body">
+        <h5 class="card-title">Total Doctors</h5>
+        <h2 class="mb-0">{{ total_doctors }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-6 mb-3">
+    <div class="card text-white bg-info">
+      <div class="card-body">
+        <h5 class="card-title">Departments</h5>
+        <h2 class="mb-0">{{ total_departments }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-6 mb-3">
+    <div class="card text-white bg-warning">
+      <div class="card-body">
+        <h5 class="card-title">Appointments</h5>
+        <h2 class="mb-0">{{ total_appointments }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-6 mb-3">
+    <div class="card text-white bg-secondary">
+      <div class="card-body">
+        <h5 class="card-title">Health Records</h5>
+        <h2 class="mb-0">{{ total_health_records }}</h2>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row mb-4">
+  <div class="col-md-6 mb-3">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Patient Gender Distribution</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="genderChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 mb-3">
+    <div class="card">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0">Blood Type Distribution</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="bloodTypeChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row mb-4">
+  <div class="col-md-6 mb-3">
+    <div class="card">
+      <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Age Group Distribution</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="ageGroupChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 mb-3">
+    <div class="card">
+      <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">Patient Registrations Over Time (Last 12 Months)</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="registrationChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 3 -->
+<div class="row mb-4">
+  <div class="col-md-6 mb-3">
+    <div class="card">
+      <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">Patients by Department</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="departmentChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 mb-3">
+    <div class="card">
+      <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">BMI Distribution</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="bmiChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 4 -->
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header bg-dark text-white">
+        <h5 class="mb-0">Top 10 Diagnoses</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="diagnosisChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+// Helper function to navigate to filtered patient list
+function navigateToFilteredPatients(filterType, filterValue) {
+    const url = `{% url 'patient_list' %}?filter_type=${filterType}&filter_value=${encodeURIComponent(filterValue)}`;
+    window.location.href = url;
+}
+
+// Gender Distribution (Pie Chart)
+const genderCtx = document.getElementById('genderChart').getContext('2d');
+new Chart(genderCtx, {
+    type: 'pie',
+    data: {
+        labels: {{ gender_labels|safe }},
+        datasets: [{
+            data: {{ gender_counts|safe }},
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        onClick: (event, elements) => {
+            if (elements.length > 0) {
+                const index = elements[0].index;
+                const label = {{ gender_labels|safe }}[index];
+                navigateToFilteredPatients('gender', label);
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                        return 'Click to view patients';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Blood Type Distribution (Doughnut Chart)
+const bloodTypeCtx = document.getElementById('bloodTypeChart').getContext('2d');
+new Chart(bloodTypeCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ blood_type_labels|safe }},
+        datasets: [{
+            data: {{ blood_type_counts|safe }},
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)',
+                'rgba(199, 199, 199, 0.8)',
+                'rgba(83, 102, 255, 0.8)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        onClick: (event, elements) => {
+            if (elements.length > 0) {
+                const index = elements[0].index;
+                const label = {{ blood_type_labels|safe }}[index];
+                navigateToFilteredPatients('blood_type', label);
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                        return 'Click to view patients';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Age Group Distribution (Bar Chart)
+const ageGroupCtx = document.getElementById('ageGroupChart').getContext('2d');
+new Chart(ageGroupCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ age_group_labels|safe }},
+        datasets: [{
+            label: 'Number of Patients',
+            data: {{ age_group_counts|safe }},
+            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        onClick: (event, elements) => {
+            if (elements.length > 0) {
+                const index = elements[0].index;
+                const label = {{ age_group_labels|safe }}[index];
+                navigateToFilteredPatients('age_group', label);
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                        return 'Click to view patients';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Patient Registrations Over Time (Line Chart)
+const registrationCtx = document.getElementById('registrationChart').getContext('2d');
+new Chart(registrationCtx, {
+    type: 'line',
+    data: {
+        labels: {{ registration_months|safe }},
+        datasets: [{
+            label: 'New Registrations',
+            data: {{ registration_counts|safe }},
+            borderColor: 'rgba(255, 206, 86, 1)',
+            backgroundColor: 'rgba(255, 206, 86, 0.2)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Patients by Department (Bar Chart)
+const departmentCtx = document.getElementById('departmentChart').getContext('2d');
+new Chart(departmentCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ dept_labels|safe }},
+        datasets: [{
+            label: 'Number of Patients',
+            data: {{ dept_patient_data|safe }},
+            backgroundColor: 'rgba(220, 53, 69, 0.8)',
+            borderColor: 'rgba(220, 53, 69, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        onClick: (event, elements) => {
+            if (elements.length > 0) {
+                const index = elements[0].index;
+                const label = {{ dept_labels|safe }}[index];
+                navigateToFilteredPatients('department', label);
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                        return 'Click to view patients';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// BMI Distribution (Pie Chart)
+const bmiCtx = document.getElementById('bmiChart').getContext('2d');
+new Chart(bmiCtx, {
+    type: 'pie',
+    data: {
+        labels: {{ bmi_labels|safe }},
+        datasets: [{
+            data: {{ bmi_counts|safe }},
+            backgroundColor: [
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(255, 99, 132, 0.8)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        onClick: (event, elements) => {
+            if (elements.length > 0) {
+                const index = elements[0].index;
+                const label = {{ bmi_labels|safe }}[index];
+                navigateToFilteredPatients('bmi', label);
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                        return 'Click to view patients';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Top Diagnoses (Bar Chart - Horizontal)
+const diagnosisCtx = document.getElementById('diagnosisChart').getContext('2d');
+new Chart(diagnosisCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ diagnosis_labels|safe }},
+        datasets: [{
+            label: 'Number of Cases',
+            data: {{ diagnosis_counts|safe }},
+            backgroundColor: 'rgba(108, 117, 125, 0.8)',
+            borderColor: 'rgba(108, 117, 125, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: true,
+        onClick: (event, elements) => {
+            if (elements.length > 0) {
+                const index = elements[0].index;
+                const label = {{ diagnosis_labels|safe }}[index];
+                navigateToFilteredPatients('diagnosis', label);
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                        return 'Click to view patients';
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
+

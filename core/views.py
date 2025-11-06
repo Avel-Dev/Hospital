@@ -2,6 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import Department, Doctor, Appointment, Patient, PatientHealthRecord
 from django import forms
 from django.contrib import messages
+from django.utils import timezone
+from django.db.models import Count, Q, Avg, Max, Min
+from collections import defaultdict
+import json
+from datetime import timedelta
+
 
 
 class AppointmentForm(forms.ModelForm):
@@ -105,6 +111,145 @@ def home(request):
     return render(request, 'home.html')
 
 
+def dashboard(request):
+    # Overall statistics
+    total_patients = Patient.objects.count()
+    total_doctors = Doctor.objects.count()
+    total_departments = Department.objects.count()
+    total_appointments = Appointment.objects.count()
+    total_health_records = PatientHealthRecord.objects.count()
+    
+    # Gender distribution
+    gender_data = Patient.objects.values('gender').annotate(count=Count('id'))
+    gender_labels = []
+    gender_counts = []
+    gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other', 'P': 'Prefer not to say'}
+    for item in gender_data:
+        gender_labels.append(gender_map.get(item['gender'], item['gender']))
+        gender_counts.append(item['count'])
+    
+    # Blood type distribution
+    blood_type_data = Patient.objects.exclude(blood_type='').values('blood_type').annotate(count=Count('id')).order_by('blood_type')
+    blood_type_labels = [item['blood_type'] for item in blood_type_data]
+    blood_type_counts = [item['count'] for item in blood_type_data]
+    
+    # Age groups distribution
+    patients = Patient.objects.all()
+    age_groups = {
+        '0-17': 0,
+        '18-30': 0,
+        '31-45': 0,
+        '46-60': 0,
+        '61-75': 0,
+        '75+': 0
+    }
+    for patient in patients:
+        age = patient.age
+        if age <= 17:
+            age_groups['0-17'] += 1
+        elif age <= 30:
+            age_groups['18-30'] += 1
+        elif age <= 45:
+            age_groups['31-45'] += 1
+        elif age <= 60:
+            age_groups['46-60'] += 1
+        elif age <= 75:
+            age_groups['61-75'] += 1
+        else:
+            age_groups['75+'] += 1
+    
+    age_group_labels = list(age_groups.keys())
+    age_group_counts = list(age_groups.values())
+    
+    # Patient registrations over time (last 12 months)
+    twelve_months_ago = timezone.now() - timedelta(days=365)
+    registrations = Patient.objects.filter(registration_date__gte=twelve_months_ago).extra(
+        select={'month': "strftime('%%Y-%%m', registration_date)"}
+    ).values('month').annotate(count=Count('id')).order_by('month')
+    
+    registration_months = [item['month'] for item in registrations]
+    registration_counts = [item['count'] for item in registrations]
+    
+    # Department-wise patient distribution (from appointments and health records)
+    dept_patient_counts = defaultdict(int)
+    # Count unique patients per department from appointments
+    for dept in Department.objects.all():
+        patient_count = Patient.objects.filter(
+            Q(appointments__department=dept) | Q(health_records__department=dept)
+        ).distinct().count()
+        dept_patient_counts[dept.name] = patient_count
+    
+    dept_labels = list(dept_patient_counts.keys())
+    dept_patient_data = list(dept_patient_counts.values())
+    
+    # Top diagnoses
+    diagnoses = PatientHealthRecord.objects.exclude(diagnosis='').values('diagnosis').annotate(
+        count=Count('id')
+    ).order_by('-count')[:10]
+    diagnosis_labels = [item['diagnosis'] for item in diagnoses]
+    diagnosis_counts = [item['count'] for item in diagnoses]
+    
+    # Average vital signs by department
+    dept_vitals = {}
+    for dept in Department.objects.all():
+        records = PatientHealthRecord.objects.filter(department=dept).exclude(systolic_bp__isnull=True)
+        if records.exists():
+            avg_bp_sys = records.aggregate(Avg('systolic_bp'))['systolic_bp__avg']
+            avg_bp_dia = records.filter(diastolic_bp__isnull=False).aggregate(Avg('diastolic_bp'))['diastolic_bp__avg']
+            avg_hr = records.filter(heart_rate__isnull=False).aggregate(Avg('heart_rate'))['heart_rate__avg']
+            dept_vitals[dept.name] = {
+                'systolic_bp': round(avg_bp_sys, 1) if avg_bp_sys else None,
+                'diastolic_bp': round(avg_bp_dia, 1) if avg_bp_dia else None,
+                'heart_rate': round(avg_hr, 1) if avg_hr else None,
+            }
+    
+    # BMI distribution
+    bmi_records = PatientHealthRecord.objects.exclude(bmi__isnull=True).values_list('bmi', flat=True)
+    bmi_categories = {
+        'Underweight (<18.5)': 0,
+        'Normal (18.5-24.9)': 0,
+        'Overweight (25-29.9)': 0,
+        'Obese (≥30)': 0
+    }
+    for bmi in bmi_records:
+        if bmi < 18.5:
+            bmi_categories['Underweight (<18.5)'] += 1
+        elif bmi < 25:
+            bmi_categories['Normal (18.5-24.9)'] += 1
+        elif bmi < 30:
+            bmi_categories['Overweight (25-29.9)'] += 1
+        else:
+            bmi_categories['Obese (≥30)'] += 1
+    
+    bmi_labels = list(bmi_categories.keys())
+    bmi_counts = list(bmi_categories.values())
+    
+    context = {
+        'total_patients': total_patients,
+        'total_doctors': total_doctors,
+        'total_departments': total_departments,
+        'total_appointments': total_appointments,
+        'total_health_records': total_health_records,
+        'gender_labels': json.dumps(gender_labels),
+        'gender_counts': json.dumps(gender_counts),
+        'blood_type_labels': json.dumps(blood_type_labels),
+        'blood_type_counts': json.dumps(blood_type_counts),
+        'age_group_labels': json.dumps(age_group_labels),
+        'age_group_counts': json.dumps(age_group_counts),
+        'registration_months': json.dumps(registration_months),
+        'registration_counts': json.dumps(registration_counts),
+        'dept_labels': json.dumps(dept_labels),
+        'dept_patient_data': json.dumps(dept_patient_data),
+        'diagnosis_labels': json.dumps(diagnosis_labels),
+        'diagnosis_counts': json.dumps(diagnosis_counts),
+        'dept_vitals': dept_vitals,
+        'bmi_labels': json.dumps(bmi_labels),
+        'bmi_counts': json.dumps(bmi_counts),
+    }
+    
+    return render(request, 'dashboard.html', context)
+
+
 def departments(request):
     department_list = Department.objects.all()
     return render(request, 'departments.html', {'departments': department_list})
@@ -158,6 +303,9 @@ def book_appointment(request):
 def patient_list(request):
     patients = Patient.objects.all()
     search_query = request.GET.get('search', '')
+    filter_type = request.GET.get('filter_type', '')
+    filter_value = request.GET.get('filter_value', '')
+    
     if search_query:
         patients = patients.filter(
             patient_id__icontains=search_query
@@ -168,7 +316,66 @@ def patient_list(request):
         ) | patients.filter(
             email__icontains=search_query
         )
-    return render(request, 'patient_list.html', {'patients': patients, 'search_query': search_query})
+    
+    # Apply filters from chart clicks
+    if filter_type == 'gender':
+        gender_map = {'Male': 'M', 'Female': 'F', 'Other': 'O', 'Prefer not to say': 'P'}
+        patients = patients.filter(gender=gender_map.get(filter_value, filter_value))
+    elif filter_type == 'blood_type':
+        patients = patients.filter(blood_type=filter_value)
+    elif filter_type == 'age_group':
+        today = timezone.now().date()
+        from datetime import date
+        
+        if filter_value == '0-17':
+            max_date = today.replace(year=today.year - 17)
+            patients = patients.filter(date_of_birth__gte=max_date)
+        elif filter_value == '18-30':
+            min_date = today.replace(year=today.year - 30)
+            max_date = today.replace(year=today.year - 18)
+            patients = patients.filter(date_of_birth__gte=min_date, date_of_birth__lt=max_date)
+        elif filter_value == '31-45':
+            min_date = today.replace(year=today.year - 45)
+            max_date = today.replace(year=today.year - 31)
+            patients = patients.filter(date_of_birth__gte=min_date, date_of_birth__lt=max_date)
+        elif filter_value == '46-60':
+            min_date = today.replace(year=today.year - 60)
+            max_date = today.replace(year=today.year - 46)
+            patients = patients.filter(date_of_birth__gte=min_date, date_of_birth__lt=max_date)
+        elif filter_value == '61-75':
+            min_date = today.replace(year=today.year - 75)
+            max_date = today.replace(year=today.year - 61)
+            patients = patients.filter(date_of_birth__gte=min_date, date_of_birth__lt=max_date)
+        elif filter_value == '75+':
+            min_date = today.replace(year=today.year - 75)
+            patients = patients.filter(date_of_birth__lt=min_date)
+    elif filter_type == 'department':
+        patients = patients.filter(
+            Q(appointments__department__name=filter_value) | Q(health_records__department__name=filter_value)
+        ).distinct()
+    elif filter_type == 'diagnosis':
+        patients = patients.filter(health_records__diagnosis=filter_value).distinct()
+    elif filter_type == 'bmi':
+        if filter_value == 'Underweight (<18.5)':
+            patients = patients.filter(health_records__bmi__lt=18.5).distinct()
+        elif filter_value == 'Normal (18.5-24.9)':
+            patients = patients.filter(health_records__bmi__gte=18.5, health_records__bmi__lt=25).distinct()
+        elif filter_value == 'Overweight (25-29.9)':
+            patients = patients.filter(health_records__bmi__gte=25, health_records__bmi__lt=30).distinct()
+        elif filter_value == 'Obese (≥30)':
+            patients = patients.filter(health_records__bmi__gte=30).distinct()
+    
+    filter_label = ''
+    if filter_type and filter_value:
+        filter_label = f"{filter_type.replace('_', ' ').title()}: {filter_value}"
+    
+    return render(request, 'patient_list.html', {
+        'patients': patients,
+        'search_query': search_query,
+        'filter_type': filter_type,
+        'filter_value': filter_value,
+        'filter_label': filter_label,
+    })
 
 
 def patient_create(request):
