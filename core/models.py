@@ -196,6 +196,7 @@ class Patient(models.Model):
         validators=[RegexValidator(r'^\d{7,15}$', 'Enter digits only (7-15 characters).')],
     )
     address = models.TextField(blank=True)
+    city = models.CharField(max_length=120, blank=True)
     emergency_contact_name = models.CharField(max_length=160, blank=True)
     emergency_contact_phone = models.CharField(max_length=20, blank=True)
     blood_type = models.CharField(max_length=3, choices=BLOOD_TYPE_CHOICES, blank=True)

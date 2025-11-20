@@ -42,6 +42,9 @@
         {% if patient.address %}
           <p><strong>Address:</strong> {{ patient.address }}</p>
         {% endif %}
+        {% if patient.city %}
+          <p><strong>City:</strong> {{ patient.city }}</p>
+        {% endif %}
         {% if patient.emergency_contact_name %}
           <p><strong>Emergency Contact:</strong> {{ patient.emergency_contact_name }} ({{ patient.emergency_contact_phone }})</p>
         {% endif %}

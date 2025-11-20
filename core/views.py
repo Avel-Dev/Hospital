@@ -106,6 +106,7 @@ class PatientForm(forms.ModelForm):
             'phone_country_code',
             'phone',
             'address',
+            'city',
             'emergency_contact_name',
             'emergency_contact_phone',
             'blood_type',
@@ -123,6 +124,7 @@ class PatientForm(forms.ModelForm):
             'phone_country_code': forms.Select(attrs={'class': 'form-select'}),
             'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '9876543210'}),
             'address': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'city': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Mumbai'}),
             'emergency_contact_name': forms.TextInput(attrs={'class': 'form-control'}),
             'emergency_contact_phone': forms.TextInput(attrs={'class': 'form-control'}),
             'blood_type': forms.Select(attrs={'class': 'form-control'}),
@@ -467,20 +469,60 @@ def dashboard(request):
     ).order_by('-count')[:10]
     diagnosis_labels = [item['diagnosis'] for item in diagnoses]
     diagnosis_counts = [item['count'] for item in diagnoses]
-    
+
+    # Visit type breakdown
+    visit_type_qs = (
+        PatientHealthRecord.objects.values('visit_type')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    visit_type_pairs = []
+    for item in visit_type_qs:
+        label = item['visit_type'].strip() if item['visit_type'] else 'Not specified'
+        visit_type_pairs.append((label, item['count']))
+    visit_type_labels = []
+    visit_type_counts = []
+    if len(visit_type_pairs) > 6:
+        top_pairs = visit_type_pairs[:5]
+        other_total = sum(count for _, count in visit_type_pairs[5:])
+        visit_type_labels = [label for label, _ in top_pairs] + ['Other']
+        visit_type_counts = [count for _, count in top_pairs] + [other_total]
+    else:
+        visit_type_labels = [label for label, _ in visit_type_pairs]
+        visit_type_counts = [count for _, count in visit_type_pairs]
+
+    # City distribution (top 8)
+    city_counts_map = defaultdict(int)
+    for item in Patient.objects.values('city').annotate(count=Count('id')):
+        city_value = (item['city'] or '').strip()
+        label = city_value if city_value else 'Not specified'
+        city_counts_map[label] += item['count']
+    sorted_cities = sorted(city_counts_map.items(), key=lambda pair: pair[1], reverse=True)
+    top_cities = sorted_cities[:8]
+    city_labels = [label for label, _ in top_cities]
+    city_counts = [count for _, count in top_cities]
+
     # Average vital signs by department
-    dept_vitals = {}
-    for dept in Department.objects.all():
-        records = PatientHealthRecord.objects.filter(department=dept).exclude(systolic_bp__isnull=True)
-        if records.exists():
-            avg_bp_sys = records.aggregate(Avg('systolic_bp'))['systolic_bp__avg']
-            avg_bp_dia = records.filter(diastolic_bp__isnull=False).aggregate(Avg('diastolic_bp'))['diastolic_bp__avg']
-            avg_hr = records.filter(heart_rate__isnull=False).aggregate(Avg('heart_rate'))['heart_rate__avg']
-            dept_vitals[dept.name] = {
-                'systolic_bp': round(avg_bp_sys, 1) if avg_bp_sys else None,
-                'diastolic_bp': round(avg_bp_dia, 1) if avg_bp_dia else None,
-                'heart_rate': round(avg_hr, 1) if avg_hr else None,
-            }
+    dept_vital_labels = []
+    dept_vital_systolic = []
+    dept_vital_diastolic = []
+    dept_vital_heart_rate = []
+    dept_vitals_qs = (
+        PatientHealthRecord.objects.values('department__name')
+        .annotate(
+            avg_systolic=Avg('systolic_bp'),
+            avg_diastolic=Avg('diastolic_bp'),
+            avg_heart_rate=Avg('heart_rate'),
+        )
+        .order_by('department__name')
+    )
+    for item in dept_vitals_qs:
+        if not any([item['avg_systolic'], item['avg_diastolic'], item['avg_heart_rate']]):
+            continue
+        dept_vital_labels.append(item['department__name'])
+        dept_vital_systolic.append(round(item['avg_systolic'], 1) if item['avg_systolic'] is not None else None)
+        dept_vital_diastolic.append(round(item['avg_diastolic'], 1) if item['avg_diastolic'] is not None else None)
+        dept_vital_heart_rate.append(round(item['avg_heart_rate'], 1) if item['avg_heart_rate'] is not None else None)
     
     # BMI distribution
     bmi_records = PatientHealthRecord.objects.exclude(bmi__isnull=True).values_list('bmi', flat=True)
@@ -520,9 +562,26 @@ def dashboard(request):
         'dept_patient_data': json.dumps(dept_patient_data),
         'diagnosis_labels': json.dumps(diagnosis_labels),
         'diagnosis_counts': json.dumps(diagnosis_counts),
-        'dept_vitals': dept_vitals,
         'bmi_labels': json.dumps(bmi_labels),
         'bmi_counts': json.dumps(bmi_counts),
+        'visit_type_labels': json.dumps(visit_type_labels),
+        'visit_type_counts': json.dumps(visit_type_counts),
+        'city_labels': json.dumps(city_labels),
+        'city_counts': json.dumps(city_counts),
+        'dept_vital_labels': json.dumps(dept_vital_labels),
+        'dept_vital_systolic': json.dumps(dept_vital_systolic),
+        'dept_vital_diastolic': json.dumps(dept_vital_diastolic),
+        'dept_vital_heart_rate': json.dumps(dept_vital_heart_rate),
+        'has_gender_data': any(gender_counts),
+        'has_blood_type_data': any(blood_type_counts),
+        'has_age_group_data': sum(age_group_counts) > 0,
+        'has_registration_data': bool(registration_counts),
+        'has_department_data': sum(dept_patient_data) > 0,
+        'has_diagnosis_data': bool(diagnosis_counts),
+        'has_bmi_data': sum(bmi_counts) > 0,
+        'has_visit_type_data': bool(visit_type_counts),
+        'has_city_data': sum(city_counts) > 0,
+        'has_dept_vitals_data': bool(dept_vital_labels),
     }
     
     return render(request, 'dashboard.html', context)
@@ -683,6 +742,20 @@ def patient_list(request):
             patients = patients.filter(health_records__bmi__gte=25, health_records__bmi__lt=30).distinct()
         elif filter_value == 'Obese (≥30)':
             patients = patients.filter(health_records__bmi__gte=30).distinct()
+    elif filter_type == 'visit_type':
+        if filter_value.lower() == 'not specified':
+            patients = patients.filter(
+                Q(health_records__visit_type__isnull=True) | Q(health_records__visit_type__exact='')
+            ).distinct()
+        else:
+            patients = patients.filter(
+                health_records__visit_type__iexact=filter_value
+            ).distinct()
+    elif filter_type == 'city':
+        if filter_value.lower() == 'not specified':
+            patients = patients.filter(Q(city__isnull=True) | Q(city__exact='')).distinct()
+        else:
+            patients = patients.filter(city__iexact=filter_value).distinct()
     
     filter_label = ''
     if filter_type and filter_value:

@@ -15,9 +15,7 @@
       {% endif %}
 
       {% if show_account_fields %}
-      <div class="col-md-12">
-        <h5 class="border-bottom pb-2 mb-3">Portal Account Access</h5>
-      </div>
+      
       <div class="col-md-6">
         <label class="form-label">{{ form.username.label }} <span class="text-danger">*</span></label>
         {{ form.username }}
@@ -106,8 +104,16 @@
           <div class="text-danger small">{{ form.email.errors }}</div>
         {% endif %}
       </div>
-      
-      <div class="col-md-6">
+
+      <div class="col-md-4">
+        <label class="form-label">{{ form.phone_country_code.label }} <span class="text-danger">*</span></label>
+        {{ form.phone_country_code }}
+        {% if form.phone_country_code.errors %}
+          <div class="text-danger small">{{ form.phone_country_code.errors }}</div>
+        {% endif %}
+      </div>
+
+      <div class="col-md-8">
         <label class="form-label">{{ form.phone.label }} <span class="text-danger">*</span></label>
         {{ form.phone }}
         {% if form.phone.errors %}
@@ -123,6 +129,13 @@
         {% endif %}
       </div>
       
+      <div class="col-md-6">
+        <label class="form-label">{{ form.city.label }}</label>
+        {{ form.city }}
+        {% if form.city.errors %}
+          <div class="text-danger small">{{ form.city.errors }}</div>
+        {% endif %}
+      </div>
       <div class="col-md-12">
         <h5 class="border-bottom pb-2 mb-3 mt-4">Emergency Contact</h5>
       </div>

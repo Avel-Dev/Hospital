@@ -4,14 +4,16 @@
 {% block content %}
 <h2 class="mb-4">Hospital Dashboard</h2>
 
-<div class="alert alert-info mb-4">
-  <i class="bi bi-info-circle"></i> <strong>Tip:</strong> Click on any chart segment or bar to view the filtered list of patients!
+<div class="dashboard-tip p-4 mb-4 d-flex flex-column flex-md-row align-items-start align-items-md-center gap-3">
+  <div class="fw-semibold">
+    <strong>Tip:</strong> Click on any chart segment or bar to jump straight to the filtered patient list.
+  </div>
 </div>
 
 <!-- Statistics Cards -->
 <div class="row mb-4">
   <div class="col-md-2 col-sm-6 mb-3">
-    <div class="card text-white bg-primary">
+    <div class="card stat-card text-white bg-primary">
       <div class="card-body">
         <h5 class="card-title">Total Patients</h5>
         <h2 class="mb-0">{{ total_patients }}</h2>
@@ -19,7 +21,7 @@
     </div>
   </div>
   <div class="col-md-2 col-sm-6 mb-3">
-    <div class="card text-white bg-success">
+    <div class="card stat-card text-white bg-success">
       <div class="card-body">
         <h5 class="card-title">Total Doctors</h5>
         <h2 class="mb-0">{{ total_doctors }}</h2>
@@ -27,7 +29,7 @@
     </div>
   </div>
   <div class="col-md-2 col-sm-6 mb-3">
-    <div class="card text-white bg-info">
+    <div class="card stat-card text-white bg-info">
       <div class="card-body">
         <h5 class="card-title">Departments</h5>
         <h2 class="mb-0">{{ total_departments }}</h2>
@@ -35,7 +37,7 @@
     </div>
   </div>
   <div class="col-md-2 col-sm-6 mb-3">
-    <div class="card text-white bg-secondary">
+    <div class="card stat-card text-white bg-secondary">
       <div class="card-body">
         <h5 class="card-title">Health Records</h5>
         <h2 class="mb-0">{{ total_health_records }}</h2>
@@ -47,22 +49,30 @@
 <!-- Charts Row 1 -->
 <div class="row mb-4">
   <div class="col-md-6 mb-3">
-    <div class="card">
+    <div class="card chart-card">
       <div class="card-header bg-primary text-white">
         <h5 class="mb-0">Patient Gender Distribution</h5>
       </div>
       <div class="card-body">
+        {% if has_gender_data %}
         <canvas id="genderChart"></canvas>
+        {% else %}
+        <div class="text-center text-muted py-5">Not enough data yet.</div>
+        {% endif %}
       </div>
     </div>
   </div>
   <div class="col-md-6 mb-3">
-    <div class="card">
+    <div class="card chart-card">
       <div class="card-header bg-success text-white">
         <h5 class="mb-0">Blood Type Distribution</h5>
       </div>
       <div class="card-body">
+        {% if has_blood_type_data %}
         <canvas id="bloodTypeChart"></canvas>
+        {% else %}
+        <div class="text-center text-muted py-5">Not enough data yet.</div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -71,22 +81,30 @@
 <!-- Charts Row 2 -->
 <div class="row mb-4">
   <div class="col-md-6 mb-3">
-    <div class="card">
+    <div class="card chart-card">
       <div class="card-header bg-info text-white">
         <h5 class="mb-0">Age Group Distribution</h5>
       </div>
       <div class="card-body">
+        {% if has_age_group_data %}
         <canvas id="ageGroupChart"></canvas>
+        {% else %}
+        <div class="text-center text-muted py-5">Not enough data yet.</div>
+        {% endif %}
       </div>
     </div>
   </div>
   <div class="col-md-6 mb-3">
-    <div class="card">
+    <div class="card chart-card">
       <div class="card-header bg-warning text-dark">
         <h5 class="mb-0">Patient Registrations Over Time (Last 12 Months)</h5>
       </div>
       <div class="card-body">
+        {% if has_registration_data %}
         <canvas id="registrationChart"></canvas>
+        {% else %}
+        <div class="text-center text-muted py-5">Not enough data yet.</div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -95,22 +113,30 @@
 <!-- Charts Row 3 -->
 <div class="row mb-4">
   <div class="col-md-6 mb-3">
-    <div class="card">
+    <div class="card chart-card">
       <div class="card-header bg-danger text-white">
         <h5 class="mb-0">Patients by Department</h5>
       </div>
       <div class="card-body">
+        {% if has_department_data %}
         <canvas id="departmentChart"></canvas>
+        {% else %}
+        <div class="text-center text-muted py-5">Not enough data yet.</div>
+        {% endif %}
       </div>
     </div>
   </div>
   <div class="col-md-6 mb-3">
-    <div class="card">
+    <div class="card chart-card">
       <div class="card-header bg-secondary text-white">
         <h5 class="mb-0">BMI Distribution</h5>
       </div>
       <div class="card-body">
+        {% if has_bmi_data %}
         <canvas id="bmiChart"></canvas>
+        {% else %}
+        <div class="text-center text-muted py-5">Not enough data yet.</div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -118,13 +144,63 @@
 
 <!-- Charts Row 4 -->
 <div class="row mb-4">
-  <div class="col-md-12">
-    <div class="card">
+  <div class="col-lg-6 mb-3">
+    <div class="card chart-card">
+      <div class="card-header bg-dark text-white">
+        <h5 class="mb-0">Visit Type Breakdown</h5>
+      </div>
+      <div class="card-body">
+        {% if has_visit_type_data %}
+        <canvas id="visitTypeChart"></canvas>
+        {% else %}
+        <div class="text-center text-muted py-5">Not enough data yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6 mb-3">
+    <div class="card chart-card">
+      <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">Patient Cities (Top 8)</h5>
+      </div>
+      <div class="card-body">
+        {% if has_city_data %}
+        <canvas id="cityChart"></canvas>
+        {% else %}
+        <div class="text-center text-muted py-5">Not enough data yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 5 -->
+<div class="row mb-4">
+  <div class="col-lg-5 mb-3">
+    <div class="card chart-card">
       <div class="card-header bg-dark text-white">
         <h5 class="mb-0">Top 10 Diagnoses</h5>
       </div>
       <div class="card-body">
+        {% if has_diagnosis_data %}
         <canvas id="diagnosisChart"></canvas>
+        {% else %}
+        <div class="text-center text-muted py-5">Not enough data yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7 mb-3">
+    <div class="card chart-card">
+      <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Average Vitals by Department</h5>
+      </div>
+      <div class="card-body">
+        {% if has_dept_vitals_data %}
+        <canvas id="deptVitalsChart"></canvas>
+        {% else %}
+        <div class="text-center text-muted py-5">Not enough data yet.</div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -141,6 +217,7 @@ function navigateToFilteredPatients(filterType, filterValue) {
 }
 
 // Gender Distribution (Pie Chart)
+{% if has_gender_data %}
 const genderCtx = document.getElementById('genderChart').getContext('2d');
 new Chart(genderCtx, {
     type: 'pie',
@@ -177,8 +254,10 @@ new Chart(genderCtx, {
         }
     }
 });
+{% endif %}
 
 // Blood Type Distribution (Doughnut Chart)
+{% if has_blood_type_data %}
 const bloodTypeCtx = document.getElementById('bloodTypeChart').getContext('2d');
 new Chart(bloodTypeCtx, {
     type: 'doughnut',
@@ -219,8 +298,10 @@ new Chart(bloodTypeCtx, {
         }
     }
 });
+{% endif %}
 
 // Age Group Distribution (Bar Chart)
+{% if has_age_group_data %}
 const ageGroupCtx = document.getElementById('ageGroupChart').getContext('2d');
 new Chart(ageGroupCtx, {
     type: 'bar',
@@ -263,8 +344,10 @@ new Chart(ageGroupCtx, {
         }
     }
 });
+{% endif %}
 
 // Patient Registrations Over Time (Line Chart)
+{% if has_registration_data %}
 const registrationCtx = document.getElementById('registrationChart').getContext('2d');
 new Chart(registrationCtx, {
     type: 'line',
@@ -292,8 +375,10 @@ new Chart(registrationCtx, {
         }
     }
 });
+{% endif %}
 
 // Patients by Department (Bar Chart)
+{% if has_department_data %}
 const departmentCtx = document.getElementById('departmentChart').getContext('2d');
 new Chart(departmentCtx, {
     type: 'bar',
@@ -336,8 +421,10 @@ new Chart(departmentCtx, {
         }
     }
 });
+{% endif %}
 
 // BMI Distribution (Pie Chart)
+{% if has_bmi_data %}
 const bmiCtx = document.getElementById('bmiChart').getContext('2d');
 new Chart(bmiCtx, {
     type: 'pie',
@@ -374,8 +461,98 @@ new Chart(bmiCtx, {
         }
     }
 });
+{% endif %}
+
+// Visit Type Distribution (Doughnut Chart)
+{% if has_visit_type_data %}
+const visitTypeCtx = document.getElementById('visitTypeChart').getContext('2d');
+new Chart(visitTypeCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ visit_type_labels|safe }},
+        datasets: [{
+            data: {{ visit_type_counts|safe }},
+            backgroundColor: [
+                'rgba(13, 110, 253, 0.85)',
+                'rgba(25, 135, 84, 0.85)',
+                'rgba(255, 193, 7, 0.85)',
+                'rgba(220, 53, 69, 0.85)',
+                'rgba(111, 66, 193, 0.85)',
+                'rgba(32, 201, 151, 0.85)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        onClick: (event, elements) => {
+            if (elements.length > 0) {
+                const index = elements[0].index;
+                const label = {{ visit_type_labels|safe }}[index];
+                navigateToFilteredPatients('visit_type', label);
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                        return 'Click to view patients';
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+// City Distribution (Bar Chart)
+{% if has_city_data %}
+const cityCtx = document.getElementById('cityChart').getContext('2d');
+new Chart(cityCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ city_labels|safe }},
+        datasets: [{
+            label: 'Patients',
+            data: {{ city_counts|safe }},
+            backgroundColor: 'rgba(102, 16, 242, 0.8)',
+            borderColor: 'rgba(102, 16, 242, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: true,
+        onClick: (event, elements) => {
+            if (elements.length > 0) {
+                const index = elements[0].index;
+                const label = {{ city_labels|safe }}[index];
+                navigateToFilteredPatients('city', label);
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                        return 'Click to view patients';
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
 
 // Top Diagnoses (Bar Chart - Horizontal)
+{% if has_diagnosis_data %}
 const diagnosisCtx = document.getElementById('diagnosisChart').getContext('2d');
 new Chart(diagnosisCtx, {
     type: 'bar',
@@ -419,6 +596,44 @@ new Chart(diagnosisCtx, {
         }
     }
 });
+{% endif %}
+
+// Average Vitals by Department (Grouped Bar Chart)
+{% if has_dept_vitals_data %}
+const deptVitalsCtx = document.getElementById('deptVitalsChart').getContext('2d');
+new Chart(deptVitalsCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ dept_vital_labels|safe }},
+        datasets: [
+            {
+                label: 'Avg Systolic BP (mmHg)',
+                data: {{ dept_vital_systolic|safe }},
+                backgroundColor: 'rgba(13, 110, 253, 0.8)'
+            },
+            {
+                label: 'Avg Diastolic BP (mmHg)',
+                data: {{ dept_vital_diastolic|safe }},
+                backgroundColor: 'rgba(25, 135, 84, 0.8)'
+            },
+            {
+                label: 'Avg Heart Rate (bpm)',
+                data: {{ dept_vital_heart_rate|safe }},
+                backgroundColor: 'rgba(255, 193, 7, 0.8)'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+{% endif %}
 </script>
 {% endblock %}
 
