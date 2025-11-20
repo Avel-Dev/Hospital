@@ -17,11 +17,59 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarsExample">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'departments' %}">Departments</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'doctors' %}">Doctors</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'patient_list' %}">Patients</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'book_appointment' %}">Book Appointment</a></li>
+        {% if user.is_authenticated %}
+          {% if user.is_staff %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'patient_list' %}">Patients</a></li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="adminToolsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Admin Tools
+              </a>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'department_create' %}">Add Department</a></li>
+                <li><a class="dropdown-item" href="{% url 'doctor_create' %}">Add Doctor</a></li>
+                <li><a class="dropdown-item" href="{% url 'patient_create' %}">Add Patient</a></li>
+              </ul>
+            </li>
+          {% elif user.is_doctor %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'doctor_patients' %}">My Patients</a></li>
+          {% else %}
+            {% if user.is_patient %}
+              <li class="nav-item"><a class="nav-link" href="{% url 'patient_detail' user.patient_profile.pk %}">My Profile</a></li>
+            {% endif %}
+          {% endif %}
+          <li class="nav-item"><a class="nav-link" href="{% url 'departments' %}">Departments</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'doctors' %}">Doctors</a></li>
+        {% endif %}
+      </ul>
+      <ul class="navbar-nav">
+        {% if user.is_authenticated %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              {% if user.is_staff %}
+                <strong>Admin:</strong> {{ user.username }}
+              {% elif user.is_doctor %}
+                <strong>Doctor:</strong> {{ user.username }}
+              {% else %}
+                {% if user.is_patient %}
+                  <strong>Patient:</strong> {{ user.patient_profile.full_name }}
+                {% else %}
+                  {{ user.username }}
+                {% endif %}
+              {% endif %}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+              {% if user.is_patient %}
+                <li><a class="dropdown-item text-danger" href="{% url 'patient_self_delete' %}">Delete Account</a></li>
+                <li><hr class="dropdown-divider"></li>
+              {% endif %}
+              <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+            </ul>
+          </li>
+        {% else %}
+          <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'patient_signup' %}">Sign Up</a></li>
+        {% endif %}
       </ul>
     </div>
   </div>

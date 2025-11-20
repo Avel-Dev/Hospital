@@ -5,7 +5,7 @@ import random
 from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from core.models import Department, Doctor, Patient, PatientHealthRecord, Appointment
+from core.models import Department, Doctor, Patient, PatientHealthRecord
 
 
 class Command(BaseCommand):
@@ -22,7 +22,6 @@ class Command(BaseCommand):
         if options['clear']:
             self.stdout.write(self.style.WARNING('Clearing existing data...'))
             PatientHealthRecord.objects.all().delete()
-            Appointment.objects.all().delete()
             Patient.objects.all().delete()
             Doctor.objects.all().delete()
             Department.objects.all().delete()
@@ -308,49 +307,10 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f'Created {record_count} health records'))
 
-        # Create Appointments (past and future)
-        appointment_notes = [
-            'Routine check-up',
-            'Follow-up appointment',
-            'Annual physical',
-            'Consultation',
-            'Review test results',
-            'Symptom evaluation',
-            '',
-        ]
-
-        future_appointments = 0
-        for _ in range(30):  # Create 30 appointments
-            patient = random.choice(patients)
-            doctor = random.choice(list(doctors.values()))
-            department = doctor.department
-            
-            # Mix of past and future appointments
-            if random.random() < 0.3:  # 30% future appointments
-                days_ahead = random.randint(1, 60)
-                appt_date = timezone.now().date() + timedelta(days=days_ahead)
-                future_appointments += 1
-            else:
-                days_ago = random.randint(1, 90)
-                appt_date = timezone.now().date() - timedelta(days=days_ago)
-            
-            Appointment.objects.create(
-                patient_name=patient.full_name,
-                patient_email=patient.email,
-                patient=patient,
-                department=department,
-                doctor=doctor,
-                appointment_date=appt_date,
-                notes=random.choice(appointment_notes),
-            )
-
-        self.stdout.write(self.style.SUCCESS(f'Created 30 appointments ({future_appointments} future)'))
-
         self.stdout.write(self.style.SUCCESS('\nData seeding completed successfully!'))
         self.stdout.write(f'\nSummary:')
         self.stdout.write(f'  - Departments: {Department.objects.count()}')
         self.stdout.write(f'  - Doctors: {Doctor.objects.count()}')
         self.stdout.write(f'  - Patients: {Patient.objects.count()}')
         self.stdout.write(f'  - Health Records: {PatientHealthRecord.objects.count()}')
-        self.stdout.write(f'  - Appointments: {Appointment.objects.count()}')
 

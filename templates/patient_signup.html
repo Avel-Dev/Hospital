@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Patient Sign Up{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">Create Patient Account</h4>
+      </div>
+      <div class="card-body">
+        <p class="text-muted">Complete the form below to create your patient profile and securely manage your health records.</p>
+        <form method="post" class="row g-3" id="patient-signup-form">
+          {% csrf_token %}
+          {{ form.non_field_errors }}
+          {% for field in form %}
+          {% if field.name in textarea_fields %}
+          <div class="col-12">
+          {% elif field.name == 'phone_country_code' %}
+          <div class="col-md-4 col-sm-6">
+          {% elif field.name == 'phone' %}
+          <div class="col-md-8 col-sm-6">
+          {% else %}
+          <div class="col-md-6">
+          {% endif %}
+            <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+              <small class="text-muted d-block">{{ field.help_text }}</small>
+            {% endif %}
+            {% if field.errors %}
+              <div class="text-danger small">{{ field.errors|striptags }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+          <div class="col-12 d-flex justify-content-between">
+            <button type="reset" class="btn btn-outline-secondary">Reset</button>
+            <button type="submit" class="btn btn-primary">Create Account</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

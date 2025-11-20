@@ -9,7 +9,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'hospital_site.settings')
 django.setup()
 
 from django.utils import timezone
-from core.models import Patient, PatientHealthRecord, Department, Doctor, Appointment
+from core.models import Patient, PatientHealthRecord, Department, Doctor
 
 print("=" * 60)
 print("DATABASE SUMMARY")
@@ -43,8 +43,5 @@ if sample_record:
     if sample_record.bmi:
         print(f"    BMI: {sample_record.bmi:.2f}")
 print()
-print(f"Appointments: {Appointment.objects.count()}")
-future_appts = Appointment.objects.filter(appointment_date__gte=timezone.now().date()).count()
-print(f"  Future appointments: {future_appts}")
 print("=" * 60)
 

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Account Deleted{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-6 mx-auto">
+    <div class="card border-danger">
+      <div class="card-header bg-danger text-white">
+        <h4 class="mb-0">Account Deleted</h4>
+      </div>
+      <div class="card-body">
+        <p>Your account ({{ patient_name }} &middot; {{ patient_id }}) has been deleted successfully.</p>
+        <p class="mb-4 text-muted">If you need to restore access, please contact the hospital administration.</p>
+        <ul class="list-unstyled mb-4">
+          <li>Health records retained by hospital: {{ health_records_count }}</li>
+        </ul>
+        <a href="{% url 'home' %}" class="btn btn-primary">Return Home</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

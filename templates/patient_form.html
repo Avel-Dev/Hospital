@@ -6,6 +6,42 @@
     <h2 class="mb-4">{{ title }}</h2>
     <form method="post" class="row g-3">
       {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="col-12">
+        <div class="alert alert-danger">
+          {{ form.non_field_errors }}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if show_account_fields %}
+      <div class="col-md-12">
+        <h5 class="border-bottom pb-2 mb-3">Portal Account Access</h5>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.username.label }} <span class="text-danger">*</span></label>
+        {{ form.username }}
+        <small class="form-text text-muted">{{ form.username.help_text }}</small>
+        {% if form.username.errors %}
+          <div class="text-danger small">{{ form.username.errors }}</div>
+        {% endif %}
+      </div>
+      <div class="col-md-6"></div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.password1.label }} <span class="text-danger">*</span></label>
+        {{ form.password1 }}
+        {% if form.password1.errors %}
+          <div class="text-danger small">{{ form.password1.errors }}</div>
+        {% endif %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.password2.label }} <span class="text-danger">*</span></label>
+        {{ form.password2 }}
+        {% if form.password2.errors %}
+          <div class="text-danger small">{{ form.password2.errors }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
       
       <div class="col-md-12">
         <h5 class="border-bottom pb-2 mb-3">Patient Information</h5>

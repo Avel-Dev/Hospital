@@ -1,6 +1,120 @@
+from django.conf import settings
+from django.contrib.auth.models import AbstractUser, UserManager as DjangoUserManager
+from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
-from django.core.validators import MinValueValidator, MaxValueValidator
+
+
+class UserManager(DjangoUserManager):
+    """Custom manager that injects sensible defaults for our role field."""
+
+    use_in_migrations = True
+
+    def _create_user(self, username, email, password, **extra_fields):
+        default_role = getattr(self.model.Roles, 'PATIENT', 'patient')
+        extra_fields.setdefault('role', default_role)
+        return super()._create_user(username, email, password, **extra_fields)
+
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        super_role = getattr(self.model.Roles, 'SUPERADMIN', 'superadmin')
+        extra_fields.setdefault('role', super_role)
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return super().create_superuser(username, email, password, **extra_fields)
+
+
+class User(AbstractUser):
+    """Primary identity model with opinionated roles."""
+
+    class Roles(models.TextChoices):
+        SUPERADMIN = 'superadmin', 'Super Admin'
+        ADMIN = 'admin', 'Admin'
+        DOCTOR = 'doctor', 'Doctor'
+        PATIENT = 'patient', 'Patient'
+        ANALYST = 'analyst', 'Analyst'
+
+    role = models.CharField(
+        max_length=20,
+        choices=Roles.choices,
+        default=Roles.PATIENT,
+        help_text="Controls provisioning, profiles, and access policies.",
+    )
+
+    objects = UserManager()
+
+    @property
+    def is_admin_user(self) -> bool:
+        return self.role in {self.Roles.ADMIN, self.Roles.SUPERADMIN}
+
+    @property
+    def is_doctor(self) -> bool:
+        return self.role == self.Roles.DOCTOR
+
+    @property
+    def is_patient(self) -> bool:
+        return self.role == self.Roles.PATIENT
+
+    def save(self, *args, **kwargs):
+        if self.role in {self.Roles.ADMIN, self.Roles.SUPERADMIN}:
+            self.is_staff = True
+        elif not self.is_superuser:
+            self.is_staff = False
+
+        if self.role == self.Roles.SUPERADMIN:
+            self.is_superuser = True
+
+        super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['username']
+
+
+def _format_profile_id(prefix: str, pk: int) -> str:
+    return f"{prefix}{pk:05d}"
+
+
+class DoctorProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='doctor_profile')
+    full_name = models.CharField(max_length=255)
+    specialization = models.CharField(max_length=120, blank=True)
+    doctor_id = models.CharField(max_length=8, unique=True)
+
+    def __str__(self) -> str:
+        return f"{self.full_name} ({self.doctor_id})"
+
+
+class PatientProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='patient_account_profile',
+    )
+    full_name = models.CharField(max_length=255)
+    patient_id = models.CharField(max_length=8, unique=True)
+    aadhar_number = models.CharField(max_length=12, blank=True, null=True)
+
+    def __str__(self) -> str:
+        return f"{self.full_name} ({self.patient_id})"
+
+
+class AuditLog(models.Model):
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='audit_events',
+    )
+    action = models.CharField(max_length=64)
+    target = models.CharField(max_length=150, blank=True)
+    details = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['action', '-created_at'])]
+
+    def __str__(self) -> str:
+        return f"{self.created_at:%Y-%m-%d %H:%M:%S} - {self.action} ({self.target})"
 
 
 class Department(models.Model):
@@ -12,14 +126,23 @@ class Department(models.Model):
 
 
 class Doctor(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='doctor_record',
+        null=True,
+        blank=True,
+        help_text="Link to a doctor login account",
+    )
     full_name = models.CharField(max_length=160)
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='doctors')
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=40, blank=True)
 
     def __str__(self) -> str:
+        if self.user:
+            return f"{self.full_name} ({self.department.name}) - @{self.user.username}"
         return f"{self.full_name} ({self.department.name})"
-
 
 class Patient(models.Model):
     GENDER_CHOICES = [
@@ -40,19 +163,52 @@ class Patient(models.Model):
         ('O-', 'O-'),
     ]
     
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='patient_profile',
+        help_text="Link to user account for login",
+    )
     patient_id = models.CharField(max_length=20, unique=True, help_text="Unique patient identifier")
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     date_of_birth = models.DateField()
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
     email = models.EmailField()
-    phone = models.CharField(max_length=20)
+    PHONE_COUNTRY_CHOICES = [
+        ('+91', '+91 (India)'),
+        ('+1', '+1 (USA / Canada)'),
+        ('+44', '+44 (United Kingdom)'),
+        ('+61', '+61 (Australia)'),
+        ('+971', '+971 (UAE)'),
+    ]
+    
+    phone_country_code = models.CharField(
+        max_length=5,
+        choices=PHONE_COUNTRY_CHOICES,
+        default='+91',
+        help_text="International dialing code, e.g., +91",
+    )
+    phone = models.CharField(
+        max_length=15,
+        validators=[RegexValidator(r'^\d{7,15}$', 'Enter digits only (7-15 characters).')],
+    )
     address = models.TextField(blank=True)
     emergency_contact_name = models.CharField(max_length=160, blank=True)
     emergency_contact_phone = models.CharField(max_length=20, blank=True)
     blood_type = models.CharField(max_length=3, choices=BLOOD_TYPE_CHOICES, blank=True)
     known_allergies = models.TextField(blank=True, help_text="List any known allergies")
     medical_history = models.TextField(blank=True, help_text="Previous medical conditions and surgeries")
+    aadhar_number = models.CharField(
+        max_length=12,
+        unique=True,
+        null=True,
+        blank=True,
+        validators=[RegexValidator(r'^\d{12}$', 'Enter a valid 12-digit Aadhar number.')],
+        help_text="12-digit national identifier (Aadhar).",
+    )
     registration_date = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -134,22 +290,5 @@ class PatientHealthRecord(models.Model):
                 self.bmi = self.weight / (height_m ** 2)
         super().save(*args, **kwargs)
 
-
-class Appointment(models.Model):
-    patient_name = models.CharField(max_length=160)
-    patient_email = models.EmailField()
-    patient = models.ForeignKey(Patient, on_delete=models.SET_NULL, null=True, blank=True,
-                                related_name='appointments', help_text="Link to patient record if available")
-    department = models.ForeignKey(Department, on_delete=models.PROTECT, related_name='appointments')
-    doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT, related_name='appointments')
-    appointment_date = models.DateField()
-    notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-appointment_date', '-created_at']
-
-    def __str__(self) -> str:
-        return f"Appointment: {self.patient_name} with {self.doctor.full_name} on {self.appointment_date}"
 
 # Create your models here.

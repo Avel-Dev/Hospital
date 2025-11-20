@@ -41,7 +41,6 @@ The seed command creates:
   - Symptoms and clinical notes
   - Visit types (Routine, Follow-up, Emergency, etc.)
   
-- **30 Appointments**: Mix of past and future appointments linking patients to doctors
 
 ### Verification
 

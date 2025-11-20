@@ -1,5 +1,50 @@
 from django.contrib import admin
-from .models import Department, Doctor, Appointment, Patient, PatientHealthRecord
+from django.contrib.auth import get_user_model
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+
+from .models import (
+    AuditLog,
+    Department,
+    Doctor,
+    DoctorProfile,
+    Patient,
+    PatientHealthRecord,
+    PatientProfile,
+)
+
+User = get_user_model()
+
+
+@admin.register(User)
+class UserAdmin(DjangoUserAdmin):
+    list_display = ('username', 'email', 'role', 'is_active', 'is_staff')
+    list_filter = ('role', 'is_active', 'is_staff')
+    fieldsets = DjangoUserAdmin.fieldsets + (
+        ('Role-based access', {'fields': ('role',)}),
+    )
+    add_fieldsets = DjangoUserAdmin.add_fieldsets + (
+        ('Role-based access', {'fields': ('role',)}),
+    )
+    search_fields = ('username', 'email', 'role')
+
+
+@admin.register(DoctorProfile)
+class DoctorProfileAdmin(admin.ModelAdmin):
+    list_display = ('doctor_id', 'full_name', 'specialization', 'user')
+    search_fields = ('doctor_id', 'full_name', 'user__username')
+
+
+@admin.register(PatientProfile)
+class PatientProfileAdmin(admin.ModelAdmin):
+    list_display = ('patient_id', 'full_name', 'user')
+    search_fields = ('patient_id', 'full_name', 'user__username')
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ('action', 'actor', 'target', 'created_at')
+    list_filter = ('action', 'created_at')
+    search_fields = ('action', 'target', 'details')
 
 
 @admin.register(Department)
@@ -60,12 +105,4 @@ class PatientHealthRecordAdmin(admin.ModelAdmin):
             'fields': ('created_at',)
         }),
     )
-
-
-@admin.register(Appointment)
-class AppointmentAdmin(admin.ModelAdmin):
-    list_display = ("patient_name", "patient", "doctor", "department", "appointment_date", "created_at")
-    list_filter = ("department", "doctor", "appointment_date")
-    search_fields = ("patient_name", "patient_email", "patient__patient_id", "doctor__full_name")
-
 # Register your models here.

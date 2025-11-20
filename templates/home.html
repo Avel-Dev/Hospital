@@ -7,8 +7,19 @@
     <h1 class="display-5 fw-bold">Welcome to Our Hospital</h1>
     <p class="col-md-8 fs-5">Quality care with expert doctors and modern facilities.</p>
     <div class="mt-3">
-      <a class="btn btn-primary btn-lg me-2" href="{% url 'dashboard' %}">View Dashboard</a>
-      <a class="btn btn-outline-primary btn-lg" href="/appointments/book/">Book an Appointment</a>
+      {% if user.is_authenticated %}
+        {% if user.is_staff %}
+          <a class="btn btn-primary btn-lg me-2" href="{% url 'dashboard' %}">View Dashboard</a>
+          <a class="btn btn-outline-primary btn-lg" href="{% url 'patient_list' %}">View Patients</a>
+        {% elif user.is_doctor %}
+          <a class="btn btn-primary btn-lg" href="{% url 'doctor_patients' %}">View My Patients</a>
+        {% elif user.is_patient %}
+          <a class="btn btn-primary btn-lg" href="{% url 'patient_detail' user.patient_profile.pk %}">My Profile</a>
+        {% endif %}
+      {% else %}
+        <a class="btn btn-primary btn-lg me-2" href="{% url 'login' %}">Login</a>
+        <a class="btn btn-outline-primary btn-lg" href="{% url 'patient_signup' %}">Create Patient Account</a>
+      {% endif %}
     </div>
   </div>
   </div>

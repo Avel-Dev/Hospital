@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}Doctors{% endblock %}
 {% block content %}
-<h2 class="mb-3">Doctors</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Doctors</h2>
+  {% if request.user.is_staff %}
+    <a class="btn btn-primary" href="{% url 'doctor_create' %}">Add Doctor</a>
+  {% endif %}
+</div>
 <div class="list-group">
   {% for doc in doctors %}
   <div class="list-group-item">
@@ -11,7 +16,9 @@
         <p class="mb-1">{{ doc.email }} {% if doc.phone %} • {{ doc.phone }}{% endif %}</p>
         <small class="text-muted">{{ doc.department.name }}</small>
       </div>
+      {% if request.user.is_staff %}
       <a href="{% url 'doctor_delete' doc.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this doctor?');">Delete</a>
+      {% endif %}
     </div>
   </div>
   {% empty %}
