@@ -10,6 +10,46 @@
   </div>
 </div>
 
+<!-- Snapshot Overview -->
+<div class="snapshot-wrapper mb-4">
+  <div class="snapshot-grid">
+    {% for card in snapshot_cards %}
+    <div class="snapshot-card">
+      <div class="d-flex align-items-center mb-3">
+        <div class="snapshot-icon me-3">
+          <i class="bi {{ card.icon }}"></i>
+        </div>
+        <div>
+          <small class="text-uppercase text-muted">{{ card.title }}</small>
+          <div class="snapshot-value">{{ card.value }}</div>
+        </div>
+      </div>
+      <div class="d-flex justify-content-between align-items-center">
+        <small class="text-muted">{{ card.subtext }}</small>
+        {% if card.change %}
+          {% if card.change.percent is not None %}
+            <span class="badge {% if card.change.trend_positive %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %}">
+              {% if card.change.trend_positive %}+{% endif %}{{ card.change.percent }}%
+            </span>
+          {% else %}
+            <span class="badge bg-secondary-subtle text-secondary">{{ card.change.delta }}</span>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="snapshot-highlight mt-3">
+    <div>
+      <span class="text-uppercase text-muted small">{{ snapshot_highlight.label }}</span>
+      <h5 class="mb-0">{{ snapshot_highlight.value }}</h5>
+    </div>
+    {% if snapshot_highlight.count %}
+    <span class="badge bg-primary-subtle text-primary">{{ snapshot_highlight.count }} cases</span>
+    {% endif %}
+  </div>
+</div>
+
 <!-- Statistics Cards -->
 <div class="row mb-4">
   <div class="col-md-2 col-sm-6 mb-3">

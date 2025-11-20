@@ -55,6 +55,54 @@ main.container {
     max-height: 360px;
 }
 
+.snapshot-wrapper {
+    background: #fff;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 12px 35px rgba(15, 23, 42, 0.12);
+}
+
+.snapshot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1rem;
+}
+
+.snapshot-card {
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 1rem;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #f8f9ff, #ffffff);
+    min-height: 140px;
+}
+
+.snapshot-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(13, 110, 253, 0.12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: #0d6efd;
+}
+
+.snapshot-value {
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+.snapshot-highlight {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px dashed rgba(13, 110, 253, 0.4);
+    border-radius: 1rem;
+    padding: 1rem 1.25rem;
+    background: rgba(13, 110, 253, 0.04);
+}
+
 @media (max-width: 992px) {
     .chart-card canvas {
         max-height: none;

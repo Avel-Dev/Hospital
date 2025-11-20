@@ -395,6 +395,27 @@ def create_user_view(request):
 @login_required
 @user_passes_test(is_admin, login_url='home')
 def dashboard(request):
+    def change_metrics(current, previous):
+        if previous:
+            delta = current - previous
+            percent = (delta / previous) * 100
+            return {
+                'delta': delta,
+                'percent': round(percent, 2),
+                'trend_positive': delta >= 0,
+            }
+        if current:
+            return {
+                'delta': current,
+                'percent': None,
+                'trend_positive': True,
+            }
+        return {
+            'delta': 0,
+            'percent': None,
+            'trend_positive': False,
+        }
+
     # Overall statistics - only admins can see all data
     total_patients = Patient.objects.count()
     total_doctors = Doctor.objects.count()
@@ -452,6 +473,80 @@ def dashboard(request):
     registration_months = [item['month'] for item in registrations]
     registration_counts = [item['count'] for item in registrations]
     
+    # Bird's-eye summary metrics
+    today = timezone.now()
+    thirty_days_ago = today - timedelta(days=30)
+    sixty_days_ago = today - timedelta(days=60)
+
+    new_patients_current = Patient.objects.filter(registration_date__gte=thirty_days_ago).count()
+    new_patients_previous = Patient.objects.filter(
+        registration_date__lt=thirty_days_ago,
+        registration_date__gte=sixty_days_ago,
+    ).count()
+
+    visits_current = PatientHealthRecord.objects.filter(record_date__gte=thirty_days_ago).count()
+    visits_previous = PatientHealthRecord.objects.filter(
+        record_date__lt=thirty_days_ago,
+        record_date__gte=sixty_days_ago,
+    ).count()
+
+    patients_seen_current = PatientHealthRecord.objects.filter(
+        record_date__gte=thirty_days_ago
+    ).values('patient').distinct().count()
+    avg_visits_per_patient = round(
+        visits_current / patients_seen_current, 2
+    ) if patients_seen_current else 0
+
+    active_departments_current = Department.objects.filter(
+        health_records__record_date__gte=thirty_days_ago
+    ).distinct().count()
+
+    top_recent_diagnosis = (
+        PatientHealthRecord.objects.filter(record_date__gte=thirty_days_ago)
+        .exclude(diagnosis='')
+        .values('diagnosis')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+        .first()
+    )
+
+    snapshot_cards = [
+        {
+            'title': 'New Patients (30d)',
+            'value': new_patients_current,
+            'change': change_metrics(new_patients_current, new_patients_previous),
+            'subtext': 'vs previous 30 days',
+            'icon': 'bi-people',
+        },
+        {
+            'title': 'Visits Logged (30d)',
+            'value': visits_current,
+            'change': change_metrics(visits_current, visits_previous),
+            'subtext': 'Health records added',
+            'icon': 'bi-clipboard2-pulse',
+        },
+        {
+            'title': 'Avg Visits / Patient',
+            'value': avg_visits_per_patient,
+            'change': None,
+            'subtext': 'Patients seen in last 30 days',
+            'icon': 'bi-graph-up',
+        },
+        {
+            'title': 'Active Departments',
+            'value': active_departments_current,
+            'change': None,
+            'subtext': 'Departments with recent visits',
+            'icon': 'bi-hospital',
+        },
+    ]
+
+    snapshot_highlight = {
+        'label': 'Most Frequent Diagnosis (30d)',
+        'value': top_recent_diagnosis['diagnosis'] if top_recent_diagnosis else 'Not enough data',
+        'count': top_recent_diagnosis['count'] if top_recent_diagnosis else 0,
+    }
+
     # Department-wise patient distribution (based on health records)
     dept_patient_counts = defaultdict(int)
     for dept in Department.objects.all():
@@ -582,6 +677,8 @@ def dashboard(request):
         'has_visit_type_data': bool(visit_type_counts),
         'has_city_data': sum(city_counts) > 0,
         'has_dept_vitals_data': bool(dept_vital_labels),
+        'snapshot_cards': snapshot_cards,
+        'snapshot_highlight': snapshot_highlight,
     }
     
     return render(request, 'dashboard.html', context)
