@@ -2,6 +2,9 @@ from collections import defaultdict
 from datetime import timedelta
 import json
 
+import logging
+logger = logging.getLogger(__name__)
+
 from django import forms
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout
@@ -174,6 +177,30 @@ class AdminPatientAccountForm(PatientForm):
             if commit:
                 patient.save()
         return patient
+    
+    def clean_aadhar_number(self):
+        aadhar = self.cleaned_data.get('aadhar_number')
+        if aadhar:
+            aadhar = aadhar.strip()
+            self.cleaned_data['aadhar_number'] = aadhar
+        if aadhar and Patient.objects.filter(aadhar_number=aadhar).exists():
+            raise forms.ValidationError('This Aadhar number is already registered.')
+        return aadhar
+    
+    class Meta(PatientForm.Meta):
+        fields = PatientForm.Meta.fields
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.initial.get('patient_id') and not self.data.get('patient_id'):
+            generated = generate_patient_id()
+            self.fields['patient_id'].initial = generated
+        if not self.initial.get('phone_country_code'):
+            self.fields['phone_country_code'].initial = '+91'
+        self.fields['aadhar_number'].required = True
+        self.fields['patient_id'].help_text = 'You can keep the suggested ID or provide your own.'
+        self.fields['phone'].help_text = 'Enter digits only, without the country code.'
+        self.fields['aadhar_number'].help_text = '12-digit Aadhar number. Required for verification.'
 
 
 class PatientSignupForm(PatientForm):
@@ -717,23 +744,35 @@ def doctor_patients(request):
         'doctor': doctor,
     })
 
-
 @login_required
 @user_passes_test(is_admin, login_url='home')
 def patient_create(request):
     if request.method == 'POST':
-        form = AdminPatientAccountForm(request.POST)
+        form = AdminPatientAccountForm(request.POST, request.FILES)
+        logger.info("patient_create POST keys: %s", list(request.POST.keys()))
         if form.is_valid():
             patient = form.save()
-            messages.success(request, f'Patient account for "{patient.full_name}" created successfully!')
+            messages.success(request, f'Patient account for \"{patient.full_name}\" created successfully!')
             return redirect('patient_list')
+        else:
+            logger.info("patient_create form errors: %s", form.errors.as_json())
+            messages.error(request, "There were errors in the submitted form. See fields highlighted.")
     else:
         form = AdminPatientAccountForm(initial={'patient_id': generate_patient_id()})
+
+    textarea_fields = ['address', 'known_allergies', 'medical_history']
+    account_fields = ['username', 'password1', 'password2']
+
     return render(request, 'patient_form.html', {
         'form': form,
         'title': 'Register New Patient',
         'show_account_fields': True,
+        'textarea_fields': textarea_fields,
+        'account_fields': account_fields,
+        'patient': None,
     })
+
+
 
 
 @login_required
