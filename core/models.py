@@ -290,5 +290,3 @@ class PatientHealthRecord(models.Model):
                 self.bmi = self.weight / (height_m ** 2)
         super().save(*args, **kwargs)
 
-
-# Create your models here.

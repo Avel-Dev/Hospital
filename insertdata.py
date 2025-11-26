@@ -6,30 +6,85 @@ import random
 
 User = get_user_model()
 
-# Create Department
-dept, _ = Department.objects.get_or_create(
-    name="General",
-    defaults={"description": "General Medicine"},
-)
+# Create Departments
+departments_data = [
+    ("Cardiology", "Heart and cardiovascular system care"),
+    ("Pediatrics", "Medical care for infants, children, and adolescents"),
+    ("Emergency Medicine", "Emergency care and trauma services"),
+    ("Orthopedics", "Bones, joints, and musculoskeletal system"),
+    ("Neurology", "Brain and nervous system disorders"),
+    ("General Medicine", "Primary care and general health services"),
+    ("Dermatology", "Skin, hair, and nail conditions"),
+]
 
-# Create Doctor with proper login
-doc_user, created = User.objects.get_or_create(
-    username="doctor1",
-    defaults={
-        "email": "doctor@example.com",
-        "role": "doctor",
-        "is_active": True,       # required
-        "is_staff": True,        # enables admin access if needed
-    }
-)
-if created:
-    doc_user.set_password("docpass123")
-    doc_user.save()
+departments = {}
+for name, description in departments_data:
+    dept, _ = Department.objects.get_or_create(
+        name=name,
+        defaults={"description": description}
+    )
+    departments[name] = dept
 
-doctor, _ = Doctor.objects.get_or_create(
-    user=doc_user,
-    defaults={"full_name": "Dr. Test", "department": dept}
-)
+# Create Doctors with usernames and passwords
+doctors_data = [
+    ("Dr. Sarah Johnson", "Cardiology", "sarah.johnson@hospital.com", "555-0101"),
+    ("Dr. Michael Chen", "Cardiology", "michael.chen@hospital.com", "555-0102"),
+    ("Dr. Emily Rodriguez", "Cardiology", "emily.rodriguez@hospital.com", "555-0103"),
+    ("Dr. James Wilson", "Pediatrics", "james.wilson@hospital.com", "555-0201"),
+    ("Dr. Lisa Anderson", "Pediatrics", "lisa.anderson@hospital.com", "555-0202"),
+    ("Dr. Robert Taylor", "Pediatrics", "robert.taylor@hospital.com", "555-0203"),
+    ("Dr. Patricia Martinez", "Emergency Medicine", "patricia.martinez@hospital.com", "555-0301"),
+    ("Dr. David Brown", "Emergency Medicine", "david.brown@hospital.com", "555-0302"),
+    ("Dr. Jennifer Lee", "Orthopedics", "jennifer.lee@hospital.com", "555-0401"),
+    ("Dr. Christopher White", "Orthopedics", "christopher.white@hospital.com", "555-0402"),
+    ("Dr. Amanda Davis", "Neurology", "amanda.davis@hospital.com", "555-0501"),
+    ("Dr. Daniel Garcia", "Neurology", "daniel.garcia@hospital.com", "555-0502"),
+    ("Dr. Kevin Moore", "General Medicine", "kevin.moore@hospital.com", "555-0701"),
+    ("Dr. Nancy Jackson", "General Medicine", "nancy.jackson@hospital.com", "555-0702"),
+    ("Dr. Steven Harris", "Dermatology", "steven.harris@hospital.com", "555-0801"),
+]
+
+doctor_credentials = []
+doctor_created_count = 0
+
+for i, (full_name, dept_name, email, phone) in enumerate(doctors_data, start=1):
+    # Generate username from doctor name
+    username = f"doctor{i}"
+    password = f"doc{i}pass123"
+    
+    # Get department
+    dept = departments.get(dept_name, departments["General Medicine"])
+    
+    # Create User account for doctor
+    doc_user, user_created = User.objects.get_or_create(
+        username=username,
+        defaults={
+            "email": email,
+            "role": User.Roles.DOCTOR,
+            "is_active": True,
+            "is_staff": True,  # enables admin access if needed
+        }
+    )
+    
+    if user_created:
+        doc_user.set_password(password)
+        doc_user.save()
+    
+    # Create Doctor record linked to User
+    doctor, doctor_created = Doctor.objects.get_or_create(
+        user=doc_user,
+        defaults={
+            "full_name": full_name,
+            "department": dept,
+            "email": email,
+            "phone": phone,
+        }
+    )
+    
+    if doctor_created:
+        doctor_created_count += 1
+    
+    doctor_credentials.append((username, password, full_name, dept_name))
 
 
 def random_dob():
@@ -83,12 +138,16 @@ for i in range(1, 101):
 
     login_credentials.append((username, password))
 
+print(f"✔ Successfully created/ensured {len(doctors_data)} doctors (created {doctor_created_count}).")
 print(f"✔ Successfully created/ensured 100 patients (created {created_count}).")
+
+print("\n========== DOCTOR LOGINS ==========")
+for username, password, full_name, dept_name in doctor_credentials:
+    print(f"{username} / {password} - {full_name} ({dept_name})")
+
 print("\n========== PATIENT LOGINS ==========")
 for u, p in login_credentials[:10]:  # Show only first 10 for preview
     print(f"{u} / {p}")
 
-print("\n✨ Doctor login:")
-print("doctor1 / docpass123")
 print("\n⚠ Full patient credentials not shown to avoid terminal flood.")
 print("   You can access all users via Django admin or filter User.objects.all()")
